@@ -25,12 +25,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -127,7 +130,8 @@ class MainActivity : ComponentActivity() {
                                 onClick = { /*TODO*/ },
                                 modifier = Modifier
                                     .align(Alignment.BottomStart)
-                                    .padding(8.dp)
+                                    .padding(8.dp),
+                                colors = ButtonDefaults.buttonColors(Color(0xFF7C1C1C))
                             ) {
                                 Text(text = "Add")
                             }
@@ -183,18 +187,20 @@ fun ConfirmButton(onClick: () -> Unit) {
 
 @Composable
 fun TagButton(tag: String) {
-    Button(
+    SuggestionChip(
         onClick = { /*TODO*/ },
-        Modifier
-            .padding(3.dp, 0.dp)
-    ) {
-        Text(
-            text = tag,
-            color = Color.White,
-            modifier = Modifier
-                .padding(2.dp)
-        )
-    }
+        label = {
+            Text(
+                text = tag,
+                color = Color.White
+            )
+        },
+        colors = SuggestionChipDefaults.suggestionChipColors(
+            containerColor = Color(0xFF7C1C1C)
+        ),
+        modifier = Modifier
+            .padding(4.dp, 0.dp)
+    )
 }
 
 @Composable
