@@ -59,6 +59,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             ComposeMindFrameTheme {
                 var text by remember { mutableStateOf("input text") }
+                var memes = remember { mutableListOf("check", "this", "out") }
                 Scaffold(
 //                    floatingActionButtonPosition = FabPosition.End,
 //                    floatingActionButton = {
@@ -80,14 +81,8 @@ class MainActivity : ComponentActivity() {
                                 .verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.Bottom
                         ) {
-                            Meme(content = "Android")
-                            Meme(content = "Compose")
-                            repeat(12) {
-                                Meme(
-                                    content = "Often these building blocks are all you need. You can write" +
-                                            " your own composable function to combine these layouts into a more" +
-                                            " elaborate layout that suits your app."
-                                )
+                            memes.forEach { memeContent ->
+                                Meme(content = memeContent)
                             }
                         }
                         Row(
@@ -111,6 +106,8 @@ class MainActivity : ComponentActivity() {
                                 .background(Color.LightGray, shape = MaterialTheme.shapes.small)
                         ) {
                             BasicTextField(
+                                //i want the text to be a placeholder
+
                                 value = text,
                                 onValueChange = { text = it },
                                 textStyle = TextStyle(fontSize = 18.sp, color = Color.DarkGray),
@@ -119,7 +116,12 @@ class MainActivity : ComponentActivity() {
                                     .padding(8.dp)
                             )
                             Button(
-                                onClick = { /*TODO*/ },
+                                onClick = {
+                                    if (text.isNotEmpty()) {
+                                        memes.add(text)
+                                        text = ""
+                                    }
+                                },
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
                                     .padding(8.dp)
