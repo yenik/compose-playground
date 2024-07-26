@@ -52,11 +52,22 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("CoroutineCreationDuringComposition")
     override fun onCreate(savedInstanceState: Bundle?) {
         val memeDB = MemeDatabaseSingleton.getDatabase(this).getMemeDAO()
+        val tagDB = MemeDatabaseSingleton.getDatabase(this).getTagDAO()
         val memes = mutableListOf<String>("prdel")
+        val tags = mutableListOf<String>("check", "this", "out")
 
         lifecycleScope.launch {
             if(memeDB.getAll().isNotEmpty()) {
                 memes.addAll(memeDB.getAll().map { it.content })
+            }
+
+            if(tagDB.getAllTags().isNotEmpty()) {
+                tags.addAll(tagDB.getAllTags().map { it.id })
+            }
+
+            if (memes.size > 5) {
+                tagDB.deleteAll()
+                memeDB.deleteAll()
             }
         }
         super.onCreate(savedInstanceState)
@@ -99,8 +110,8 @@ class MainActivity : ComponentActivity() {
                                 .horizontalScroll(rememberScrollState()),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            repeat(5) {
-                                TagButton(tag = "test")
+                            tags.forEach {tag ->
+                                TagButton(tag = tag)
                             }
                         }
                         Box(
@@ -121,13 +132,27 @@ class MainActivity : ComponentActivity() {
                             Button(
                                 onClick = {
                                     if (text.isNotEmpty()) {
+                                        val extractedTags = extractTags(text)
+
                                         lifecycleScope.launch {
+                                            extractedTags.forEach { tag ->
+                                                tagDB.insert(Tag(id = tag.replace("#", ""), createdAt = LocalDate.now()))
+                                            }
                                             memeDB.insert(cz.nuanced.composemindframe.db.Meme(
                                                     content = text,
-                                                    createdAt = LocalDate.now()))
+                                                    createdAt = LocalDate.now())).also {
+                                                        memes.add(text)
+                                                        text = ""
+                                            }
                                         }
-                                        memes.add(text)
-                                        text = ""
+
+                                        if(extractedTags.isNotEmpty()) {
+                                            extractedTags.forEach { tag ->
+                                                if(!tags.contains(tag)) {
+                                                    tags.add(tag.replace("#", ""))
+                                                }
+                                            }
+                                        }
                                     }
                                 },
                                 modifier = Modifier
@@ -147,7 +172,6 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
-
                 }
             }
         }
@@ -228,4 +252,8 @@ fun MemePreview() {
     ComposeMindFrameTheme {
         Survey()
     }
+}
+
+private fun extractTags(input: String): List<String> {
+    return Regex("#[a-zA-Z0-9_]+").findAll(input).map { it.value }.toList()
 }
