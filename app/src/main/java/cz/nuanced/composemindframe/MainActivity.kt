@@ -1,5 +1,6 @@
 package cz.nuanced.composemindframe
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,22 +13,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
@@ -40,26 +33,38 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withRunningRecomposer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
+import cz.nuanced.composemindframe.db.MemeDatabaseSingleton
+import cz.nuanced.composemindframe.db.Tag
 import cz.nuanced.composemindframe.ui.theme.ComposeMindFrameTheme
+import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class MainActivity : ComponentActivity() {
+    @SuppressLint("CoroutineCreationDuringComposition")
     override fun onCreate(savedInstanceState: Bundle?) {
+        val memeDB = MemeDatabaseSingleton.getDatabase(this).getMemeDAO()
+        val memes = mutableListOf<String>("prdel")
+
+        lifecycleScope.launch {
+            if(memeDB.getAll().isNotEmpty()) {
+                memes.addAll(memeDB.getAll().map { it.content })
+            }
+        }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             ComposeMindFrameTheme {
                 var text by remember { mutableStateOf("input text") }
-                var memes = remember { mutableListOf("check", "this", "out") }
+
                 Scaffold(
 //                    floatingActionButtonPosition = FabPosition.End,
 //                    floatingActionButton = {
@@ -94,8 +99,8 @@ class MainActivity : ComponentActivity() {
                                 .horizontalScroll(rememberScrollState()),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            repeat(7) {
-                                TagButton(tag = "Android")
+                            repeat(5) {
+                                TagButton(tag = "test")
                             }
                         }
                         Box(
@@ -106,8 +111,6 @@ class MainActivity : ComponentActivity() {
                                 .background(Color.LightGray, shape = MaterialTheme.shapes.small)
                         ) {
                             BasicTextField(
-                                //i want the text to be a placeholder
-
                                 value = text,
                                 onValueChange = { text = it },
                                 textStyle = TextStyle(fontSize = 18.sp, color = Color.DarkGray),
@@ -118,6 +121,11 @@ class MainActivity : ComponentActivity() {
                             Button(
                                 onClick = {
                                     if (text.isNotEmpty()) {
+                                        lifecycleScope.launch {
+                                            memeDB.insert(cz.nuanced.composemindframe.db.Meme(
+                                                    content = text,
+                                                    createdAt = LocalDate.now()))
+                                        }
                                         memes.add(text)
                                         text = ""
                                     }
