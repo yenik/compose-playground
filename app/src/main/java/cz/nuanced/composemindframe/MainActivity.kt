@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import cz.nuanced.composemindframe.db.MemeDatabaseSingleton
 import cz.nuanced.composemindframe.db.Tag
+import cz.nuanced.composemindframe.network.MindFetchApi
 import cz.nuanced.composemindframe.ui.theme.ComposeMindFrameTheme
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -58,11 +59,11 @@ class MainActivity : ComponentActivity() {
         val tags = mutableListOf<String>("check", "this", "out")
 
         lifecycleScope.launch {
-            if(memeDB.getAll().isNotEmpty()) {
+            if (memeDB.getAll().isNotEmpty()) {
                 memes.addAll(memeDB.getAll().map { it.content })
             }
 
-            if(tagDB.getAllTags().isNotEmpty()) {
+            if (tagDB.getAllTags().isNotEmpty()) {
                 tags.addAll(tagDB.getAllTags().map { it.id })
             }
 
@@ -75,7 +76,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ComposeMindFrameTheme {
-                var text by remember { mutableStateOf("input text") }
+                var text by remember { mutableStateOf("") }
 
                 Scaffold(
 //                    floatingActionButtonPosition = FabPosition.End,
@@ -112,7 +113,7 @@ class MainActivity : ComponentActivity() {
                                 .horizontalScroll(rememberScrollState()),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            tags.forEach {tag ->
+                            tags.forEach { tag ->
                                 TagButton(tag = tag)
                             }
                         }
@@ -125,7 +126,10 @@ class MainActivity : ComponentActivity() {
                         ) {
                             BasicTextField(
                                 value = text,
-                                onValueChange = { text = it },
+                                onValueChange = {
+                                    text = it
+                                    //remove all elements in memeList
+                                },
                                 textStyle = TextStyle(fontSize = 18.sp, color = Color.DarkGray),
                                 modifier = Modifier
                                     .background(Color.LightGray, shape = MaterialTheme.shapes.small)
@@ -133,24 +137,45 @@ class MainActivity : ComponentActivity() {
                             )
                             Button(
                                 onClick = {
+                                    lifecycleScope.launch {
+                                        val mindFetch = MindFetchApi.retrofitService.getMindFetch(text)
+                                        text = mindFetch.body
+                                    }
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .padding(8.dp)
+                            ) {
+                                Text(text = "Fetch")
+                            }
+                            Button(
+                                onClick = {
                                     if (text.isNotEmpty()) {
                                         val extractedTags = extractTags(text)
 
                                         lifecycleScope.launch {
                                             extractedTags.forEach { tag ->
-                                                tagDB.insert(Tag(id = tag.replace("#", ""), createdAt = LocalDate.now()))
+                                                tagDB.insert(
+                                                    Tag(
+                                                        id = tag.replace("#", ""),
+                                                        createdAt = LocalDate.now()
+                                                    )
+                                                )
                                             }
-                                            memeDB.insert(cz.nuanced.composemindframe.db.Meme(
+                                            memeDB.insert(
+                                                cz.nuanced.composemindframe.db.Meme(
                                                     content = text,
-                                                    createdAt = LocalDate.now())).also {
-                                                        memes.add(text)
-                                                        text = ""
+                                                    createdAt = LocalDate.now()
+                                                )
+                                            ).also {
+                                                memes.add(text)
+                                                text = ""
                                             }
                                         }
 
-                                        if(extractedTags.isNotEmpty()) {
+                                        if (extractedTags.isNotEmpty()) {
                                             extractedTags.forEach { tag ->
-                                                if(!tags.contains(tag)) {
+                                                if (!tags.contains(tag)) {
                                                     tags.add(tag.replace("#", ""))
                                                 }
                                             }
@@ -159,14 +184,6 @@ class MainActivity : ComponentActivity() {
                                 },
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
-                                    .padding(8.dp)
-                            ) {
-                                Text(text = "Send")
-                            }
-                            Button(
-                                onClick = { /*TODO*/ },
-                                modifier = Modifier
-                                    .align(Alignment.BottomStart)
                                     .padding(8.dp),
                                 colors = ButtonDefaults.buttonColors(Color(0xFF7C1C1C))
                             ) {
